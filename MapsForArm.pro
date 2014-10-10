@@ -24,3 +24,6 @@ HEADERS  += mainwindowmapsforarm.h \
     mapdatadisk.h
 
 FORMS    += mainwindowmapsforarm.ui
+
+RESOURCES += \
+    resources.qrc

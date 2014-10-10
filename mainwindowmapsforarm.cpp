@@ -12,16 +12,16 @@ MainWindowMapsForArm::MainWindowMapsForArm(QWidget *parent) :
     m_mapWidget(new MapWidget(this))
 {
     ui->setupUi(this);
-    MapDataDisk *mapSource = new MapDataDisk(
-                "D:/Archive/Maps apps/Maperitive/Tiles",
-                15, 19804, 19866, 9658, 9683);
-    m_mapWidget->setMapData(mapSource);
+    //MapDataDisk *mapSource = new MapDataDisk("D:/Archive/Maps apps/Maperitive/Tiles");
+    MapDataDisk *mapSource = new MapDataDisk("D:/Archive/Maps apps/Maps/cherepovets-tiles");
+    mapSource->setZoomLvlToMin();
+    m_mapWidget->setMapData(mapSource, false);
     QHBoxLayout *lay = new QHBoxLayout();
     lay->addWidget(m_mapWidget);
     ui->centralWidget->setLayout(lay);
     QTimer *t = new QTimer(this);
     connect(t, SIGNAL(timeout()), this,SLOT(onTimeout()));
-    QTimer::singleShot(1000, this, SLOT(forCenterByGeoCoord()));
+    //QTimer::singleShot(1000, this, SLOT(forCenterByGeoCoord()));
     t->start(50);
 
 }

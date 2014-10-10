@@ -4,17 +4,32 @@
 #include <QColor>
 #include <QHash>
 #include <QMutex>
+#include <QList>
 
 // 10000000 / 60000
 #define MAX_CACHED_IMAGES 1600
 
 class IMapData
 {
+protected:
+    struct ZoomData {
+        int zoomLvl;
+        int minX;
+        int maxX;
+        int minY;
+        int maxY;
+    };
+
 public:
-    IMapData(const int zoomLvl,
-             const int minX, const int maxX,
-             const int minY, const int maxY);
+    IMapData();
     virtual ~IMapData() {}
+    virtual QImage getTile(const int x, const int y) = 0;
+    QList<int> supportedZoomLevels() const;
+    bool zoomUp();
+    bool zoomDown();
+    void setZoomLvlToMax();
+    void setZoomLvlToMin();
+
     int zoomLvl() const;
     int minX() const;
     int maxX() const;
@@ -29,7 +44,7 @@ public:
     bool putImageInCache(const int x, const int y, const QImage &tile);
     QImage getImageFromCache(const int x, const int y);
 
-    virtual QImage getTile(const int x, const int y) = 0;
+
     double tileX2Long(int x, int offsetXInTile);
     double tileY2Lat(int y, int offsetYInTile);
 
@@ -39,17 +54,26 @@ public:
     int tileWidth() const;
     int tileHeight() const;
 
+protected:
+    void setZoomLvl(const int zoomLvl);
+    void setMinX(const int minX);
+    void setMaxX(const int maxX);
+    void setMinY(const int minY);
+    void setMaxY(const int maxY);
+    void setSettingByZoomData(const ZoomData &zd);
+    void addZoomLevel(const int &zoomLevel, const ZoomData &zd);
 
 private:
-    const int m_zoomLvl;
-    const int m_minX;
-    const int m_maxX;
-    const int m_minY;
-    const int m_maxY;
+    int m_zoomLvl;
+    int m_minX;
+    int m_maxX;
+    int m_minY;
+    int m_maxY;
     int m_numberOfCachedImages;
     int m_maxCachedImages;
     QImage m_defaultBackground;
-    QHash<quint64, QImage> m_tilesHash;
+    QHash<int, ZoomData> m_zoomDatas;
+    QHash<QString, QImage> m_tilesHash;
     QMutex m_mutexForTilesHash;
 };
 

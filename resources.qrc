@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/tiles">
+        <file>resources/no-tile.png</file>
+    </qresource>
+</RCC>

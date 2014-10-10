@@ -6,9 +6,7 @@
 class MapDataDisk : public IMapData
 {
 public:
-    MapDataDisk(const QString &pathToTiles, const int zoomLvl,
-                const int minX, const int maxX,
-                const int minY, const int maxY);
+    MapDataDisk(const QString &pathToTiles);
 
     // IMapData interface
 public:

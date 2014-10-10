@@ -4,18 +4,17 @@
 
 static const double PI  =3.141592653589793238463;
 
-IMapData::IMapData(
-        const int zoomLvl, const int minX, const int maxX,
-        const int minY, const int maxY) :
-    m_zoomLvl(zoomLvl),
-    m_minX(minX),
-    m_maxX(maxX),
-    m_minY(minY),
-    m_maxY(maxY),
+IMapData::IMapData() :
+    m_zoomLvl(0),
+    m_minX(0),
+    m_maxX(0),
+    m_minY(0),
+    m_maxY(0),
     m_numberOfCachedImages(0),
     m_maxCachedImages(MAX_CACHED_IMAGES)
 {
-    setDefaultBackgroundColor(Qt::green);
+    //setDefaultBackgroundColor(Qt::green);
+    m_defaultBackground.load(":/tiles/resources/no-tile.png");
 }
 
 int IMapData::zoomLvl() const
@@ -60,7 +59,7 @@ bool IMapData::putImageInCache(const int x, const int y, const QImage &tile)
     if (m_numberOfCachedImages >= m_maxCachedImages) {
         return false;
     }
-    quint64 hash = x | ((quint64)y << 0x20);
+    QString hash = QString("%0_%1_%2").arg(zoomLvl()).arg(x).arg(y);
     m_tilesHash[hash] = tile;
     ++m_numberOfCachedImages;
     return true;
@@ -69,7 +68,7 @@ bool IMapData::putImageInCache(const int x, const int y, const QImage &tile)
 QImage IMapData::getImageFromCache(const int x, const int y)
 {
     QMutexLocker locker(&m_mutexForTilesHash);
-    quint64 hash = x | ((quint64)y << 0x20);
+    QString hash = QString("%0_%1_%2").arg(zoomLvl()).arg(x).arg(y);
     return m_tilesHash.value(hash, QImage());
 }
 
@@ -86,6 +85,52 @@ void IMapData::setMaxCachedImages(int maxCachedImages)
 QSize IMapData::mapSizeInPx() const
 {
     return QSize((maxX() - minX() + 1) * tileWidth(), (maxY() - minY() + 1) * tileHeight());
+}
+
+QList<int> IMapData::supportedZoomLevels() const
+{
+    QList<int> retVal = m_zoomDatas.keys();
+    qSort(retVal);
+    return retVal;
+}
+
+bool IMapData::zoomUp()
+{
+    QList<int> zoomLevels = supportedZoomLevels();
+    for (const int &zoom : zoomLevels) {
+        if (zoom > zoomLvl()) {
+            setSettingByZoomData(m_zoomDatas.value(zoom));
+            return true;
+        }
+    }
+    return false;
+}
+
+bool IMapData::zoomDown()
+{
+    QList<int> zoomLevels = supportedZoomLevels();
+    int idx = zoomLevels.indexOf(zoomLvl());
+    if (idx > 0) {
+        setSettingByZoomData(m_zoomDatas.value(zoomLevels.at(idx - 1)));
+        return true;
+    }
+    return false;
+}
+
+void IMapData::setZoomLvlToMax()
+{
+    auto zoomLevels = supportedZoomLevels();
+    if (zoomLevels.count() > 0) {
+        setSettingByZoomData(m_zoomDatas.value(zoomLevels.at(zoomLevels.count() - 1)));
+    }
+}
+
+void IMapData::setZoomLvlToMin()
+{
+    auto zoomLevels = supportedZoomLevels();
+    if (zoomLevels.count() > 0) {
+        setSettingByZoomData(m_zoomDatas.value(zoomLevels.at(0)));
+    }
 }
 
 double IMapData::tileX2Long(int x, int offsetXInTile)
@@ -131,4 +176,59 @@ int IMapData::tileWidth() const
 int IMapData::tileHeight() const
 {
     return 0x0100;
+}
+
+void IMapData::setZoomLvl(const int zoomLvl)
+{
+    ZoomData zoomData;
+    memset(&zoomData, 0, sizeof(zoomData));
+    if (m_zoomDatas.contains(zoomLvl)) {
+        zoomData = m_zoomDatas[zoomLvl];
+    } else {
+        QList<int> zoomLevels = supportedZoomLevels();
+        for (const int &z : zoomLevels) {
+            if (zoomLvl < z && zoomData.zoomLvl < z) {
+                zoomData = m_zoomDatas.value(z);
+            }
+        }
+        if (zoomData.zoomLvl == 0 && zoomLevels.count() > 0) {
+            zoomData = m_zoomDatas.value(0);
+        }
+    }
+
+    setSettingByZoomData(zoomData);
+}
+
+void IMapData::setMinX(const int minX)
+{
+    m_minX = minX;
+}
+
+void IMapData::setMaxX(const int maxX)
+{
+    m_maxX = maxX;
+}
+
+void IMapData::setMinY(const int minY)
+{
+    m_minY = minY;
+}
+
+void IMapData::setMaxY(const int maxY)
+{
+    m_maxY = maxY;
+}
+
+void IMapData::setSettingByZoomData(const IMapData::ZoomData &zd)
+{
+    m_zoomLvl = zd.zoomLvl;
+    m_minX = zd.minX;
+    m_maxX = zd.maxX;
+    m_minY = zd.minY;
+    m_maxY = zd.maxY;
+}
+
+void IMapData::addZoomLevel(const int &zoomLevel, const IMapData::ZoomData &zd)
+{
+    m_zoomDatas[zoomLevel] = zd;
 }
