@@ -14,6 +14,7 @@ public:
 
 private:
     QString pathAppend(const QString &path1, const QString &path2);
+    void parseDir(const QString &pathToTiles);
 
 private:
     QString m_pathToTiles;

@@ -1,8 +1,37 @@
 #include "imapdata.h"
 
 #include <QMutexLocker>
+#include <QDebug>
 
-static const double PI  =3.141592653589793238463;
+static const double PI = 3.141592653589793238463;
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+QPointF tileForCoordinate(qreal lat, qreal lng, int zoom)
+{
+    qreal zn = static_cast<qreal>(1 << zoom);
+    qreal tx = (lng + 180.0) / 360.0;
+    qreal ty = (1.0 - log(tan(lat * M_PI / 180.0) +
+                          1.0 / cos(lat * M_PI / 180.0)) / M_PI) / 2.0;
+    return QPointF(tx * zn, ty * zn);
+}
+
+qreal longitudeFromTile(qreal tx, int zoom)
+{
+    qreal zn = static_cast<qreal>(1 << zoom);
+    qreal lat = tx / zn * 360.0 - 180.0;
+    return lat;
+}
+
+qreal latitudeFromTile(qreal ty, int zoom)
+{
+    qreal zn = static_cast<qreal>(1 << zoom);
+    qreal n = M_PI - 2 * M_PI * ty / zn;
+    qreal lng = 180.0 / M_PI * atan(0.5 * (exp(n) - exp(-n)));
+    return lng;
+}
 
 IMapData::IMapData() :
     m_zoomLvl(0),
@@ -20,6 +49,24 @@ IMapData::IMapData() :
 int IMapData::zoomLvl() const
 {
     return m_zoomLvl;
+}
+
+int IMapData::minZoomLevel() const
+{
+    auto zoomLevels = supportedZoomLevels();
+    if (zoomLevels.empty()) {
+        return 0;
+    }
+    return zoomLevels.at(0);
+}
+
+int IMapData::maxZoomLevel() const
+{
+    auto zoomLevels = supportedZoomLevels();
+    if (zoomLevels.empty()) {
+        return 0;
+    }
+    return zoomLevels.at(zoomLevels.size() - 1);
 }
 
 int IMapData::minX() const
@@ -133,39 +180,97 @@ void IMapData::setZoomLvlToMin()
     }
 }
 
+#if 0
+double tilex2long(int x, int z)
+{
+    return x / pow(2.0, z) * 360.0 - 180;
+}
+#endif
+
+QPointF IMapData::tile2Coordinate(qreal lat, qreal lng) {
+    return tileForCoordinate(lat, lng, m_zoomLvl) - QPointF(m_minX, m_minY);
+}
+
 double IMapData::tileX2Long(int x, int offsetXInTile)
 {
+
     x += m_minX;
     double realPart = offsetXInTile / 256.;
-    return (x + realPart) / pow(2.0, zoomLvl()) * 360.0 - 180;
+    double tileX = x + realPart;
+    return longitudeFromTile(tileX, zoomLvl());
+    //return (x + realPart) / pow(2.0, zoomLvl()) * 360.0 - 180;
 }
+
+#if 0
+double tiley2lat(int y, int z)
+{
+    double n = M_PI - 2.0 * M_PI * y / pow(2.0, z);
+    return 180.0 / M_PI * atan(0.5 * (exp(n) - exp(-n)));
+}
+#endif
 
 double IMapData::tileY2Lat(int y, int offsetYInTile)
 {
     y += m_minY;
     double realPart = offsetYInTile / 256.;
-    double n = PI - 2.0 * PI * (y + realPart) / pow(2.0, zoomLvl());
-    return 180.0 / PI * atan(0.5 * (exp(n) - exp(-n)));
+    double tileY = y + realPart;
+    return latitudeFromTile(tileY, zoomLvl());
+
+    //double n = PI - 2.0 * PI * (y + realPart) / pow(2.0, zoomLvl());
+    //return 180.0 / PI * atan(0.5 * (exp(n) - exp(-n)));
 }
+
+#if 0
+int long2tilex(double lon, int z)
+{
+    return (int)(floor((lon + 180.0) / 360.0 * pow(2.0, z)));
+}
+#endif
 
 int IMapData::long2TileX(double lon, int *offsetXInTile)
 {
-    double tileXReal = (lon + 180.0) / 360.0 * pow(2.0, m_zoomLvl);
-    int tileX = (int)tileXReal;
+    QPointF pos = tileForCoordinate(0, lon, zoomLvl());
     if (offsetXInTile) {
-        *offsetXInTile = (int) (256 * (tileXReal - tileX));
+        *offsetXInTile = (pos.x() - floor(pos.x())) * 256;
+    }
+    return (int) pos.x() - m_minX;
+
+#if 0
+    double tileXReal = (lon + 180.0) / 360.0 * pow(2.0, m_zoomLvl);
+    int tileX = (int)floor(tileXReal);
+    if (offsetXInTile) {
+        *offsetXInTile = (int)floor(256 * (tileXReal - tileX));
+        qDebug() << Q_FUNC_INFO << *offsetXInTile;
     }
     return tileX - m_minX;
+#endif
 }
+
+#if 0
+int lat2tiley(double lat, int z)
+{
+    return (int)(floor((1.0 - log( tan(lat * M_PI/180.0) + 1.0 / cos(lat * M_PI/180.0)) / M_PI) / 2.0 * pow(2.0, z)));
+}
+#endif
 
 int IMapData::lat2TileY(double lat, int *offsetYInTile)
 {
-    double tileYReal = (1.0 - log( tan(lat * PI/180.0) + 1.0 / cos(lat * PI/180.0)) / PI) / 2.0 * pow(2.0, m_zoomLvl);
-    int tileY =  (int) tileYReal;
+    QPointF pos = tileForCoordinate(lat, 0, zoomLvl());
     if (offsetYInTile) {
-        *offsetYInTile = (int) (256 * (tileYReal - tileY));
+        *offsetYInTile = (pos.y() - floor(pos.y())) * 256;
+    }
+    return (int) pos.y() - m_minY;
+#if 0
+    double tileYReal =
+            (1.0 - log( tan(lat * PI/180.0) + 1.0 / cos(lat * PI/180.0)) / PI)
+            / 2.0 * pow(2.0, m_zoomLvl);
+    int tileY =  (int)floor(tileYReal);
+    if (offsetYInTile) {
+        *offsetYInTile = (int)floor(256 * (tileYReal - tileY));
+        qDebug() << Q_FUNC_INFO << *offsetYInTile;
     }
     return tileY - m_minY;
+#endif
 }
 
 int IMapData::tileWidth() const

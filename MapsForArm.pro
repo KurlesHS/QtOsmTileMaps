@@ -11,17 +11,19 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = MapsForArm
 TEMPLATE = app
 
+include($$PWD/json/qt-json.pri)
+
 
 SOURCES += main.cpp\
         mainwindowmapsforarm.cpp \
     mapwidget.cpp \
     imapdata.cpp \
-    mapdatadisk.cpp
+    mapdatadisk.cpp \
 
 HEADERS  += mainwindowmapsforarm.h \
     mapwidget.h \
     imapdata.h \
-    mapdatadisk.h
+    mapdatadisk.h \
 
 FORMS    += mainwindowmapsforarm.ui
 

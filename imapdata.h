@@ -31,6 +31,8 @@ public:
     void setZoomLvlToMin();
 
     int zoomLvl() const;
+    int minZoomLevel() const;
+    int maxZoomLevel() const;
     int minX() const;
     int maxX() const;
     int minY() const;
@@ -44,6 +46,7 @@ public:
     bool putImageInCache(const int x, const int y, const QImage &tile);
     QImage getImageFromCache(const int x, const int y);
 
+    QPointF tile2Coordinate(qreal lat, qreal lng);
 
     double tileX2Long(int x, int offsetXInTile);
     double tileY2Lat(int y, int offsetYInTile);

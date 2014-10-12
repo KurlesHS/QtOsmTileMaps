@@ -13,7 +13,9 @@ MainWindowMapsForArm::MainWindowMapsForArm(QWidget *parent) :
 {
     ui->setupUi(this);
     //MapDataDisk *mapSource = new MapDataDisk("D:/Archive/Maps apps/Maperitive/Tiles");
-    MapDataDisk *mapSource = new MapDataDisk("D:/Archive/Maps apps/Maps/cherepovets-tiles");
+    //MapDataDisk *mapSource = new MapDataDisk("D:/Archive/Maps apps/Maps/cherepovets-tiles");
+    //MapDataDisk *mapSource = new MapDataDisk("D:/Archive/gis/Software/Maperitive/Tiles");
+    MapDataDisk *mapSource = new MapDataDisk("D:/Archive/gis/Software/Maperitive/Tiles/tiles.json");
     mapSource->setZoomLvlToMin();
     m_mapWidget->setMapData(mapSource, false);
     QHBoxLayout *lay = new QHBoxLayout();
