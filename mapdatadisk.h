@@ -5,12 +5,13 @@
 
 class MapDataDisk : public IMapData
 {
+    Q_OBJECT
 public:
-    MapDataDisk(const QString &pathToTiles);
+    MapDataDisk(const QString &pathToTiles, QObject *parent = 0);
 
     // IMapData interface
 public:
-    virtual QImage getTile(int x, int y);
+    virtual QPixmap getTile(int x, int y);
 
 private:
     QString pathAppend(const QString &path1, const QString &path2);

@@ -4,39 +4,15 @@
 #include <QWidget>
 #include <QFutureWatcher>
 #include <QVariantAnimation>
+#include <QTimer>
 
 class IMapData;
-
-struct ZoomAnimationHelper {
-    double scaleFactor;
-    QSize position;
-};
-
-Q_DECLARE_METATYPE(ZoomAnimationHelper)
-
-class ZoomAnimation : public QVariantAnimation {
-public:
-    ZoomAnimation(QObject *parent = 0) : QVariantAnimation(parent) {}
-    virtual ~ZoomAnimation() {}
-
-    // QVariantAnimation interface
-protected:
-    void updateCurrentValue(const QVariant &value) {emit valueChanged(value);}
-    QVariant interpolated(const QVariant &from, const QVariant &to, qreal progress) const {
-        ZoomAnimationHelper zahFrom = from.value<ZoomAnimationHelper>();
-        ZoomAnimationHelper zahTo = to.value<ZoomAnimationHelper>();
-        ZoomAnimationHelper res;
-        res.scaleFactor = (zahTo.scaleFactor - zahFrom.scaleFactor) * progress + zahFrom.scaleFactor;
-        res.position = (zahTo.position - zahFrom.position) * progress + zahFrom.position;
-        return QVariant::fromValue<ZoomAnimationHelper>(res);
-    }
-
-};
+class MapRenderer;
+class QThread;
 
 class MapWidget : public QWidget
 {
     Q_OBJECT
-    Q_PROPERTY(double scaleForDownAnimation READ scaleForDownAnimation WRITE setScaleForDownAnimation)
 
     enum States {
         NormalState,
@@ -46,21 +22,15 @@ class MapWidget : public QWidget
 
 public:
     explicit MapWidget(QWidget *parent = 0);
-    void setMapData(IMapData * const mapDataSource, bool update = true);
-    void setMapDelta(QPoint mapDelta, const bool update = true);
+    virtual ~MapWidget();
+    void setMapData(IMapData * const mapDataSource);
+    void zoomUp(const QPoint &centerTo);
+    void zoomDown(const QPoint &centerTo);
+    void centerMap();
 
-    int mapDeltaX() const;
-    int mapDeltaY() const;
-
-    void centerByGeoCoord(const double &lat, const double &lon);
-    void centerByMapOffset(const int offsetX, const int offsetY);
-
-    QPoint getMapDeltaByCenterGeoCoord(const double &lat, const double &lon);
-    QPoint getPosInByGeoCoords(const double &lat, const double &lon);
-
-    double scaleForDownAnimation() const;
-    void setScaleForDownAnimation(const double &scale);
-
+public Q_SLOTS:
+    void updatedImage(const QImage &image);
+    void onResizeTimeout();
 
 protected:
     void paintEvent(QPaintEvent *event);
@@ -71,46 +41,17 @@ protected:
     void wheelEvent(QWheelEvent *event);
 
 private:
-    void setMapDeltaXHelper(int mapDeltaX);
-    void setMapDeltaYHelper(int mapDeltaY);
-    void createBackground();
-    void createBackgroundInThreadAndUpdate(bool update);
-    QImage createBackground(const QSize &size);
-    QPointF getCurrentGeoCoordByPos(const QPoint &pos) const;
-    void continueFadeDownAnimation(const int currentTick, const int maxTick, const int delta);
-
-private slots:
-    void onCreateBackgroundFinished();
-    void enableZooming();
-    void onDownAnimationFinished();
-    void onFadeAnimation();
-    void onFadeResult();
-    void currentLoopParalelGroupAnimationChanged(const int loop);
-    void onZoomDownAnimationTick(const QVariant &value);
+    void handleMouseMoveWithLeftButtonPressed();
 
 private:
-    States m_currentState;
-    QImage m_backgroundImage;
-    QImage m_lastBackgroundImage;
+    QImage m_background;
+    MapRenderer *m_mapRenderer;
+    QThread *m_threadForRenderer;
+    QTimer *m_timerForResizeEvent;
+    bool m_isLeftMousePressed;
+    QPoint m_mousePressCoord;
+    QPoint m_mapDeltaOnMousePress;
 
-    QImage m_fadeImage1;
-    QImage m_fadeImage2;
-
-    IMapData *m_mapDataSource;
-    QFutureWatcher<QImage> m_futureWatcherForFinishCreateBackground;
-    QPointF m_centerTo;
-
-    QPoint m_mapDelta;
-    QPoint m_screenOffset;
-
-    QPoint m_pressedMousePoint;
-    QPoint m_pressedMouseDelta;
-
-    bool m_isMousePressed;
-    bool m_createBackgroundInProcess;
-    bool m_isNeededUpdateAfterCreateBackground;
-    bool m_isNeededToRecreatebackground;
-    bool m_isZoomingEnabled;
 };
 
 #endif // MAPWIDGET_H

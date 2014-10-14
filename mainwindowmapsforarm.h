@@ -4,6 +4,7 @@
 #include <QMainWindow>
 
 class MapWidget;
+class SlippyMapWidget;
 
 namespace Ui {
 class MainWindowMapsForArm;
@@ -19,11 +20,12 @@ public:
 
 private slots:
     void onTimeout();
-    void forCenterByGeoCoord();
 
 private:
     Ui::MainWindowMapsForArm *ui;
     MapWidget *m_mapWidget;
+    SlippyMapWidget *m_glMapWidget;
+
 };
 
 #endif // MAINWINDOWMAPSFORARM_H

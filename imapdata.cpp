@@ -1,39 +1,11 @@
 #include "imapdata.h"
+#include "geocoord.h"
 
 #include <QMutexLocker>
 #include <QDebug>
 
-static const double PI = 3.141592653589793238463;
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-
-QPointF tileForCoordinate(qreal lat, qreal lng, int zoom)
-{
-    qreal zn = static_cast<qreal>(1 << zoom);
-    qreal tx = (lng + 180.0) / 360.0;
-    qreal ty = (1.0 - log(tan(lat * M_PI / 180.0) +
-                          1.0 / cos(lat * M_PI / 180.0)) / M_PI) / 2.0;
-    return QPointF(tx * zn, ty * zn);
-}
-
-qreal longitudeFromTile(qreal tx, int zoom)
-{
-    qreal zn = static_cast<qreal>(1 << zoom);
-    qreal lat = tx / zn * 360.0 - 180.0;
-    return lat;
-}
-
-qreal latitudeFromTile(qreal ty, int zoom)
-{
-    qreal zn = static_cast<qreal>(1 << zoom);
-    qreal n = M_PI - 2 * M_PI * ty / zn;
-    qreal lng = 180.0 / M_PI * atan(0.5 * (exp(n) - exp(-n)));
-    return lng;
-}
-
-IMapData::IMapData() :
+IMapData::IMapData(QObject *parent) :
+    QObject(parent),
     m_zoomLvl(0),
     m_minX(0),
     m_maxX(0),
@@ -42,8 +14,12 @@ IMapData::IMapData() :
     m_numberOfCachedImages(0),
     m_maxCachedImages(MAX_CACHED_IMAGES)
 {
-    //setDefaultBackgroundColor(Qt::green);
     m_defaultBackground.load(":/tiles/resources/no-tile.png");
+}
+
+QPixmap IMapData::getTile(const QPoint &tilePos)
+{
+    return getTile(tilePos.x(), tilePos.y());
 }
 
 int IMapData::zoomLvl() const
@@ -89,34 +65,59 @@ int IMapData::maxY() const
     return m_maxY;
 }
 
-QImage IMapData::defaultBackground() const
+QRect IMapData::tileBounds() const
+{
+    return QRect(minX(), minY(), maxX(), maxY());
+}
+
+bool IMapData::canZoomUp() const
+{
+    auto s = supportedZoomLevels();
+    if (s.count() > 0 && s.at(s.count() - 1) > zoomLvl()) {
+        return true;
+    }
+    return false;
+}
+
+bool IMapData::canZoomDown() const
+{
+    auto s = supportedZoomLevels();
+    if (s.count() > 0 && s.at(0) < zoomLvl()) {
+        return true;
+    }
+    return false;
+}
+
+QPixmap IMapData::defaultBackground() const
 {
     return m_defaultBackground;
 }
 
 void IMapData::setDefaultBackgroundColor(const QColor &color)
 {
-    m_defaultBackground = QImage(0x100, 0x100, QImage::Format_RGB32);
+    m_defaultBackground = QPixmap(0x100, 0x100);
     m_defaultBackground.fill(color);
 }
 
-bool IMapData::putImageInCache(const int x, const int y, const QImage &tile)
+bool IMapData::putImageInCache(const int x, const int y, const QPixmap &tile)
 {
     QMutexLocker locker(&m_mutexForTilesHash);
     if (m_numberOfCachedImages >= m_maxCachedImages) {
         return false;
     }
     QString hash = QString("%0_%1_%2").arg(zoomLvl()).arg(x).arg(y);
-    m_tilesHash[hash] = tile;
+    QPixmapCache::insert(hash, tile);
     ++m_numberOfCachedImages;
     return true;
 }
 
-QImage IMapData::getImageFromCache(const int x, const int y)
+QPixmap IMapData::getImageFromCache(const int x, const int y)
 {
     QMutexLocker locker(&m_mutexForTilesHash);
     QString hash = QString("%0_%1_%2").arg(zoomLvl()).arg(x).arg(y);
-    return m_tilesHash.value(hash, QImage());
+    QPixmap retVal;
+    QPixmapCache::find(hash, retVal);
+    return retVal;
 }
 
 int IMapData::maxCachedImages() const
@@ -180,99 +181,6 @@ void IMapData::setZoomLvlToMin()
     }
 }
 
-#if 0
-double tilex2long(int x, int z)
-{
-    return x / pow(2.0, z) * 360.0 - 180;
-}
-#endif
-
-QPointF IMapData::tile2Coordinate(qreal lat, qreal lng) {
-    return tileForCoordinate(lat, lng, m_zoomLvl) - QPointF(m_minX, m_minY);
-}
-
-double IMapData::tileX2Long(int x, int offsetXInTile)
-{
-
-    x += m_minX;
-    double realPart = offsetXInTile / 256.;
-    double tileX = x + realPart;
-    return longitudeFromTile(tileX, zoomLvl());
-    //return (x + realPart) / pow(2.0, zoomLvl()) * 360.0 - 180;
-}
-
-#if 0
-double tiley2lat(int y, int z)
-{
-    double n = M_PI - 2.0 * M_PI * y / pow(2.0, z);
-    return 180.0 / M_PI * atan(0.5 * (exp(n) - exp(-n)));
-}
-#endif
-
-double IMapData::tileY2Lat(int y, int offsetYInTile)
-{
-    y += m_minY;
-    double realPart = offsetYInTile / 256.;
-    double tileY = y + realPart;
-    return latitudeFromTile(tileY, zoomLvl());
-
-    //double n = PI - 2.0 * PI * (y + realPart) / pow(2.0, zoomLvl());
-    //return 180.0 / PI * atan(0.5 * (exp(n) - exp(-n)));
-}
-
-#if 0
-int long2tilex(double lon, int z)
-{
-    return (int)(floor((lon + 180.0) / 360.0 * pow(2.0, z)));
-}
-#endif
-
-int IMapData::long2TileX(double lon, int *offsetXInTile)
-{
-    QPointF pos = tileForCoordinate(0, lon, zoomLvl());
-    if (offsetXInTile) {
-        *offsetXInTile = (pos.x() - floor(pos.x())) * 256;
-    }
-    return (int) pos.x() - m_minX;
-
-#if 0
-    double tileXReal = (lon + 180.0) / 360.0 * pow(2.0, m_zoomLvl);
-    int tileX = (int)floor(tileXReal);
-    if (offsetXInTile) {
-        *offsetXInTile = (int)floor(256 * (tileXReal - tileX));
-        qDebug() << Q_FUNC_INFO << *offsetXInTile;
-    }
-    return tileX - m_minX;
-#endif
-}
-
-#if 0
-int lat2tiley(double lat, int z)
-{
-    return (int)(floor((1.0 - log( tan(lat * M_PI/180.0) + 1.0 / cos(lat * M_PI/180.0)) / M_PI) / 2.0 * pow(2.0, z)));
-}
-#endif
-
-int IMapData::lat2TileY(double lat, int *offsetYInTile)
-{
-    QPointF pos = tileForCoordinate(lat, 0, zoomLvl());
-    if (offsetYInTile) {
-        *offsetYInTile = (pos.y() - floor(pos.y())) * 256;
-    }
-    return (int) pos.y() - m_minY;
-#if 0
-    double tileYReal =
-            (1.0 - log( tan(lat * PI/180.0) + 1.0 / cos(lat * PI/180.0)) / PI)
-            / 2.0 * pow(2.0, m_zoomLvl);
-    int tileY =  (int)floor(tileYReal);
-    if (offsetYInTile) {
-        *offsetYInTile = (int)floor(256 * (tileYReal - tileY));
-        qDebug() << Q_FUNC_INFO << *offsetYInTile;
-    }
-    return tileY - m_minY;
-#endif
-}
-
 int IMapData::tileWidth() const
 {
     return 0x0100;
@@ -281,6 +189,12 @@ int IMapData::tileWidth() const
 int IMapData::tileHeight() const
 {
     return 0x0100;
+}
+
+void IMapData::requestTile(const int tileX, const int tileY)
+{
+    QPixmap tileImage = getTile(tileX, tileY);
+    emit requestedTile(tileX, tileY, tileImage);
 }
 
 void IMapData::setZoomLvl(const int zoomLvl)
@@ -337,3 +251,36 @@ void IMapData::addZoomLevel(const int &zoomLevel, const IMapData::ZoomData &zd)
 {
     m_zoomDatas[zoomLevel] = zd;
 }
+QPoint IMapData::currentMapOffset() const
+{
+    return m_currentMapOffset;
+}
+
+void IMapData::setCurrentMapOffset(const QPoint &currentMapOffset)
+{
+    m_currentMapOffset = currentMapOffset;
+}
+
+void IMapData::adjustMap(const QRect &rect, const int newZoomLevel, QPoint adjustTo)
+{
+    if (!supportedZoomLevels().contains(newZoomLevel)) {
+        return;
+    }
+    if (adjustTo.x() < 0 || adjustTo.y() < 0) {
+        adjustTo = QPoint(rect.size().width() / 2, rect.size().height() / 2);
+    }
+    qreal tileX = (m_currentMapOffset.x() + adjustTo.x()) / (qreal)tileWidth();
+    qreal tileY = (m_currentMapOffset.y() + adjustTo.y()) / (qreal)tileHeight();
+    GeoCoord centerToCoord = GeoCoord::fromTilePosition(QPointF(tileX, tileY), this->zoomLvl());
+    QPointF newCenter = centerToCoord.getTilePosition(newZoomLevel);
+    newCenter *= (qreal)tileHeight();
+    setZoomLvl(newZoomLevel);
+    QPointF xxx = newCenter - adjustTo;
+    m_currentMapOffset = xxx.toPoint();
+}
+
+void IMapData::toTopLeftCorner()
+{
+    m_currentMapOffset = tileBounds().topLeft() * tileWidth();
+}
+

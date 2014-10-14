@@ -2,11 +2,13 @@
 #include <QDir>
 #include <QDebug>
 #include <QRegExp>
+#include <QTime>
 
 #include "json.h"
+#include "geocoord.h"
 
-MapDataDisk::MapDataDisk(const QString &pathToTiles) :
-    IMapData(),
+MapDataDisk::MapDataDisk(const QString &pathToTiles, QObject *parent) :
+    IMapData(parent),
     m_pathToTiles(pathToTiles)
 {
     QDir path(pathToTiles);
@@ -48,12 +50,15 @@ MapDataDisk::MapDataDisk(const QString &pathToTiles) :
                 }
                 if (ok && minZoom >= 0 && maxZoom >= 0) {
                     for (int i = minZoom; i <= maxZoom; ++i) {
+                        GeoCoord coordTop = GeoCoord(topY, topX);
+                        GeoCoord coordBottom = GeoCoord(bottomY, bottomX);
                         ZoomData zd;
                         zd.zoomLvl = i;
-                        zd.minX = long2TileX(topX);
-                        zd.minY = lat2TileY(topY);
-                        zd.maxX = long2TileX(bottomX);
-                        zd.maxY = lat2TileY(bottomY);
+                        QPoint delataTile;
+                        zd.minX = coordTop.getTilePosition(i, delataTile).x();
+                        zd.minY = coordTop.getTilePosition(i, delataTile).y();
+                        zd.maxX = coordBottom.getTilePosition(i, delataTile).x();
+                        zd.maxY = coordBottom.getTilePosition(i, delataTile).y();
                         addZoomLevel(i, zd);
                     }
                 }
@@ -62,16 +67,13 @@ MapDataDisk::MapDataDisk(const QString &pathToTiles) :
     }
 }
 
-
-QImage MapDataDisk::getTile(int x, int y)
+QPixmap MapDataDisk::getTile(int x, int y)
 {
-    if (x > (maxX() - minY()) || x < 0 || y > (maxY() - minY()) || y < 0) {
+    if (x < minX() || x > maxX() || y < minY() || y > maxY() ) {
         return defaultBackground();
     }
-    QImage tile = getImageFromCache(x, y);
+    QPixmap tile = getImageFromCache(x, y);
     if (tile.isNull()) {
-        x += minX();
-        y += minY();
         QString filename = QString("%1/%2/%3.png")
                 .arg(zoomLvl())
                 .arg(x)
@@ -84,7 +86,7 @@ QImage MapDataDisk::getTile(int x, int y)
     if (tile.isNull() || tile.height() != 0x100 || tile.width() != 0x100) {
         return defaultBackground();
     }
-    putImageInCache(x - minX(), y - minY(), tile);
+    putImageInCache(x, y, tile);
     return tile;
 }
 
