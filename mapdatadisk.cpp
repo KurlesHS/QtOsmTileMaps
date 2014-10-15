@@ -80,6 +80,7 @@ QPixmap MapDataDisk::getTile(int x, int y)
                 .arg(y);
         QString filepath = pathAppend(m_pathToTiles, filename);
         tile.load(filepath);
+        qDebug() << "disk read";
     } else {
         return tile;
     }

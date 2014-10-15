@@ -12,7 +12,8 @@ IMapData::IMapData(QObject *parent) :
     m_minY(0),
     m_maxY(0),
     m_numberOfCachedImages(0),
-    m_maxCachedImages(MAX_CACHED_IMAGES)
+    m_maxCachedImages(MAX_CACHED_IMAGES),
+    m_pixmapCache(m_maxCachedImages)
 {
     m_defaultBackground.load(":/tiles/resources/no-tile.png");
 }
@@ -101,23 +102,30 @@ void IMapData::setDefaultBackgroundColor(const QColor &color)
 
 bool IMapData::putImageInCache(const int x, const int y, const QPixmap &tile)
 {
+    QString hash = QString("%0_%1_%2").arg(zoomLvl()).arg(x).arg(y);
+#if 0
     QMutexLocker locker(&m_mutexForTilesHash);
     if (m_numberOfCachedImages >= m_maxCachedImages) {
         return false;
     }
-    QString hash = QString("%0_%1_%2").arg(zoomLvl()).arg(x).arg(y);
     QPixmapCache::insert(hash, tile);
     ++m_numberOfCachedImages;
+    return true;
+#endif
+    m_pixmapCache.putImageInCache(hash, tile);
     return true;
 }
 
 QPixmap IMapData::getImageFromCache(const int x, const int y)
 {
-    QMutexLocker locker(&m_mutexForTilesHash);
     QString hash = QString("%0_%1_%2").arg(zoomLvl()).arg(x).arg(y);
+#if 0
+    QMutexLocker locker(&m_mutexForTilesHash);
     QPixmap retVal;
     QPixmapCache::find(hash, retVal);
     return retVal;
+#endif
+    return m_pixmapCache.getImageFromCache(hash);
 }
 
 int IMapData::maxCachedImages() const
@@ -218,26 +226,6 @@ void IMapData::setZoomLvl(const int zoomLvl)
     setSettingByZoomData(zoomData);
 }
 
-void IMapData::setMinX(const int minX)
-{
-    m_minX = minX;
-}
-
-void IMapData::setMaxX(const int maxX)
-{
-    m_maxX = maxX;
-}
-
-void IMapData::setMinY(const int minY)
-{
-    m_minY = minY;
-}
-
-void IMapData::setMaxY(const int maxY)
-{
-    m_maxY = maxY;
-}
-
 void IMapData::setSettingByZoomData(const IMapData::ZoomData &zd)
 {
     m_zoomLvl = zd.zoomLvl;
@@ -284,3 +272,30 @@ void IMapData::toTopLeftCorner()
     m_currentMapOffset = tileBounds().topLeft() * tileWidth();
 }
 
+
+
+PixmapCache::PixmapCache(int maxSize) :
+    m_maxSize(maxSize < 40 ? 40 : maxSize)
+{
+
+}
+
+void PixmapCache::putImageInCache(const QString &key, const QPixmap &pixmap)
+{
+    if (m_keys.contains(key)) {
+        m_keys.removeAll(key);
+    } else if (m_keys.size() >= m_maxSize) {
+        QList<QString> first20 = m_keys.mid(0, 20);
+        for (const QString &key : first20) {
+            m_pixmapCache.remove(key);
+        }
+        m_keys = m_keys.mid(20);
+    }
+    m_keys.append(key);
+    m_pixmapCache[key] = pixmap;
+}
+
+QPixmap PixmapCache::getImageFromCache(const QString &key)
+{
+    return m_pixmapCache.value(key, QPixmap());
+}

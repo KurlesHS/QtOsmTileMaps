@@ -15,7 +15,7 @@ class MainWindowMapsForArm : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindowMapsForArm(QWidget *parent = 0);
+    explicit MainWindowMapsForArm(QString path, QWidget *parent = 0);
     ~MainWindowMapsForArm();
 
 private slots:

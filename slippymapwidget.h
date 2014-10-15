@@ -2,6 +2,7 @@
 #define SLIPPYMAPWIDGET_H
 
 #include "isetrenderer.h"
+#include "batchrenderer.h"
 
 #include <QGLWidget>
 
@@ -43,7 +44,9 @@ private:
     QPoint m_mousePressCoord;
     QPoint m_mapDeltaOnMousePress;
     SlippyMapRenderer *m_slippyMapRenderer;
+    BatchRenderer *m_mainBatchRenderer;
     IRenderer *m_currentRenderer;
+
 };
 
 #endif // SLIPPYMAPWIDGET_H

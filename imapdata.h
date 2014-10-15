@@ -11,6 +11,18 @@
 // 10000000 / 60000
 #define MAX_CACHED_IMAGES 300
 
+class PixmapCache {
+public:
+    PixmapCache(int maxSize);
+    void putImageInCache(const QString &key, const QPixmap &pixmap);
+    QPixmap getImageFromCache(const QString &key);
+
+private:
+    const int m_maxSize;
+    QList<QString> m_keys;
+    QHash<QString, QPixmap> m_pixmapCache;
+};
+
 class IMapData : public QObject
 {
     Q_OBJECT
@@ -58,7 +70,6 @@ public:
     void adjustMap(const QRect &rect, const int newZoomLevel, QPoint adjustTo = QPoint(-1, -1));
     void toTopLeftCorner();
 
-
 signals:
     void requestedTile(const int tileX, const int tileY, const QPixmap &tileImage);
 
@@ -71,10 +82,6 @@ public Q_SLOTS:
 
 protected:
     void setZoomLvl(const int zoomLvl);
-    void setMinX(const int minX);
-    void setMaxX(const int maxX);
-    void setMinY(const int minY);
-    void setMaxY(const int maxY);
     void setSettingByZoomData(const ZoomData &zd);
     void addZoomLevel(const int &zoomLevel, const ZoomData &zd);
 
@@ -90,6 +97,7 @@ private:
     QHash<int, ZoomData> m_zoomDatas;
     QMutex m_mutexForTilesHash;
     QPoint m_currentMapOffset;
+    PixmapCache m_pixmapCache;
 };
 
 #endif // IMAPDATA_H

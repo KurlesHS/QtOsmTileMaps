@@ -8,6 +8,7 @@
 #include <QWheelEvent>
 #include <QResizeEvent>
 #include <QMouseEvent>
+#include <QTimer>
 
 SlippyMapWidget::SlippyMapWidget(QWidget *parent) :
     QGLWidget(parent),
@@ -15,10 +16,13 @@ SlippyMapWidget::SlippyMapWidget(QWidget *parent) :
     m_isLeftMousePressed(false),
     m_isUserActionsEnabled(true),
     m_slippyMapRenderer(new SlippyMapRenderer(this)),
+    m_mainBatchRenderer(new BatchRenderer(this, this)),
     m_currentRenderer(m_slippyMapRenderer)
-
 {
     setAutoFillBackground(false);
+    QTimer *t = new QTimer(this);
+    connect(t, SIGNAL(timeout()), this, SLOT(update()));
+    m_mainBatchRenderer->addRenderer(m_slippyMapRenderer);
 }
 
 void SlippyMapWidget::setMapDataSource(IMapData * const mapDataSource)
@@ -88,7 +92,7 @@ void SlippyMapWidget::setRenderer(IRenderer *renderer)
     if (renderer) {
         m_currentRenderer = renderer;
     } else {
-        m_currentRenderer = m_slippyMapRenderer;
+        m_currentRenderer = m_mainBatchRenderer;
         m_isUserActionsEnabled = true;
         m_isLeftMousePressed = false;
     }

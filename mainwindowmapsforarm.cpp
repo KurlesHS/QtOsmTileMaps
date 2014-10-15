@@ -1,35 +1,33 @@
 #include "mainwindowmapsforarm.h"
 #include "ui_mainwindowmapsforarm.h"
 
-#include "mapwidget.h"
 #include "mapdatadisk.h"
 #include "slippymapwidget.h"
 
 #include <QHBoxLayout>
 #include <QTimer>
 
-MainWindowMapsForArm::MainWindowMapsForArm(QWidget *parent) :
+MainWindowMapsForArm::MainWindowMapsForArm(QString path, QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindowMapsForArm),
-    //m_mapWidget(new MapWidget(this)),
     m_glMapWidget(new SlippyMapWidget(this))
 {
     ui->setupUi(this);
-
-    //MapDataDisk *mapSource = new MapDataDisk("D:/Archive/Maps apps/Maperitive/Tiles");
-    MapDataDisk *mapSource = new MapDataDisk("D:/Archive/Maps apps/Maps/cherepovets-tiles");
-    //MapDataDisk *mapSource = new MapDataDisk("D:/Archive/gis/Software/Maperitive/Tiles");
-    //MapDataDisk *mapSource = new MapDataDisk("D:/Archive/gis/Software/Maperitive/Tiles/tiles.json");
+    if (path.isEmpty()) {
+        path = "D:/Archive/Maps apps/Maps/cherepovets-tiles";
+    }
+    MapDataDisk *mapSource = new MapDataDisk(path);
     mapSource->setZoomLvlToMin();
     mapSource->toTopLeftCorner();
-    //m_mapWidget->setMapData(mapSource);
     m_glMapWidget->setMapDataSource(mapSource);
     QHBoxLayout *lay = new QHBoxLayout();
     lay->addWidget(m_glMapWidget);
     ui->centralWidget->setLayout(lay);
-    //QTimer *t = new QTimer(this);
-    //connect(t, SIGNAL(timeout()), this,SLOT(onTimeout()));
-    //t->start(50);
+#if 0
+    QTimer *t = new QTimer(this);
+    connect(t, SIGNAL(timeout()), this,SLOT(update());
+    t->start(50);
+#endif
 
 }
 

@@ -16,7 +16,6 @@ void SlippyMapRenderer::setMapDataSource(IMapData * const mapDataSource)
     m_mapDataSource = mapDataSource;
 }
 
-
 void SlippyMapRenderer::render(QPainter *painter, QRect rect)
 {
     if (!m_mapDataSource) {
@@ -29,11 +28,9 @@ void SlippyMapRenderer::render(QPainter *painter, QRect rect)
     int addX = 1;
     int addY = 1;
     if (mapOffset.x() % m_mapDataSource->tileWidth() != 0) {
-        tileX;
         ++addX;
     }
     if (mapOffset.y() % m_mapDataSource->tileHeight() != 0) {
-        tileY;
         ++addY;
     }
     QRect translatedRect = rect;
@@ -47,7 +44,6 @@ void SlippyMapRenderer::render(QPainter *painter, QRect rect)
                                 tileBox.y() - mapOffset.y()),
                                 tileBox.size());
                 painter->drawPixmap(r, m_mapDataSource->getTile(tilePos));
-                //painter->drawImage(r, img);
             }
         }
     }
