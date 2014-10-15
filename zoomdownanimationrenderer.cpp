@@ -11,7 +11,8 @@ ZoomDownAnimationRenderer::ZoomDownAnimationRenderer(
 
 void ZoomDownAnimationRenderer::renderHandler(QPainter *painter, QRect rect)
 {
-    m_pixmapForRender = pixmap().scaled(currentRect().size());
-    painter->fillRect(rect, Qt::gray);
-    painter->drawPixmap(currentRect(), m_pixmapForRender);
+    QPoint topLeft = (startRect().topLeft() - endRect().topLeft()) * progress() + endRect().topLeft();
+    QSize size = (startRect().size() - endRect().size()) * progress() + endRect().size();
+    painter->drawPixmap(rect, m_pixmapTo, QRect(topLeft, size));
+    painter->drawPixmap(currentRect(), pixmap(), pixmap().rect());
 }

@@ -3,9 +3,11 @@
 
 #include "mapdatadisk.h"
 #include "slippymapwidget.h"
+#include "mapdatambtiles.h"
 
 #include <QHBoxLayout>
 #include <QTimer>
+#include <QMessageBox>
 
 MainWindowMapsForArm::MainWindowMapsForArm(QString path, QWidget *parent) :
     QMainWindow(parent),
@@ -13,35 +15,28 @@ MainWindowMapsForArm::MainWindowMapsForArm(QString path, QWidget *parent) :
     m_glMapWidget(new SlippyMapWidget(this))
 {
     ui->setupUi(this);
-    if (path.isEmpty()) {
-        path = "D:/Archive/Maps apps/Maps/cherepovets-tiles";
+    IMapData *mapSource;
+    if (path.endsWith(".mbtiles")) {
+        mapSource = new MapDataMbtiles(path);
+    } else {
+        mapSource = new MapDataDisk(path);
     }
-    MapDataDisk *mapSource = new MapDataDisk(path);
+    if (!mapSource->isValidData()) {
+        QMessageBox::critical(this, tr("error!"), tr("can't load data source \"%1\"").arg(path));
+        QTimer::singleShot(1, qApp, SLOT(quit()));
+    }
     mapSource->setZoomLvlToMin();
     mapSource->toTopLeftCorner();
     m_glMapWidget->setMapDataSource(mapSource);
     QHBoxLayout *lay = new QHBoxLayout();
     lay->addWidget(m_glMapWidget);
     ui->centralWidget->setLayout(lay);
-#if 0
-    QTimer *t = new QTimer(this);
-    connect(t, SIGNAL(timeout()), this,SLOT(update());
-    t->start(50);
-#endif
-
 }
 
 MainWindowMapsForArm::~MainWindowMapsForArm()
 {
     delete ui;
 }
-
-void MainWindowMapsForArm::onTimeout()
-{
-    //m_mapWidget->setMapDeltaX(m_mapWidget->mapDeltaX() + 1);
-    //m_mapWidget->setMapDeltaY(m_mapWidget->mapDeltaY() + 1);
-}
-
 
 
 

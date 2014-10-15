@@ -59,7 +59,7 @@ MapDataDisk::MapDataDisk(const QString &pathToTiles, QObject *parent) :
                         zd.minY = coordTop.getTilePosition(i, delataTile).y();
                         zd.maxX = coordBottom.getTilePosition(i, delataTile).x();
                         zd.maxY = coordBottom.getTilePosition(i, delataTile).y();
-                        addZoomLevel(i, zd);
+                        addZoomLevel(zd);
                     }
                 }
             }
@@ -80,7 +80,6 @@ QPixmap MapDataDisk::getTile(int x, int y)
                 .arg(y);
         QString filepath = pathAppend(m_pathToTiles, filename);
         tile.load(filepath);
-        qDebug() << "disk read";
     } else {
         return tile;
     }
@@ -141,7 +140,10 @@ void MapDataDisk::parseDir(const QString &pathToTiles)
                 }
             }
             if (zd.maxX != INT_MIN && zd.maxY != INT_MIN && zd.minX != INT_MAX && zd.minY != INT_MAX) {
-                addZoomLevel(zoomLvl, zd);
+                if (!isValidData()) {
+                    setDataValid(true);
+                }
+                addZoomLevel(zd);
             }
         }
     }

@@ -12,9 +12,6 @@ public:
     // ZoomAnimationRenderer interface
 protected:
     virtual void renderHandler(QPainter *painter, QRect rect);
-
-private:
-    QPixmap m_pixmapForRender;
 };
 
 #endif // ZOOMUPANIMATIONRENDERER_H

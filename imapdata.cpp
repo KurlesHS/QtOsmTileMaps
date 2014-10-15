@@ -13,6 +13,7 @@ IMapData::IMapData(QObject *parent) :
     m_maxY(0),
     m_numberOfCachedImages(0),
     m_maxCachedImages(MAX_CACHED_IMAGES),
+    m_isValidData(false),
     m_pixmapCache(m_maxCachedImages)
 {
     m_defaultBackground.load(":/tiles/resources/no-tile.png");
@@ -103,15 +104,6 @@ void IMapData::setDefaultBackgroundColor(const QColor &color)
 bool IMapData::putImageInCache(const int x, const int y, const QPixmap &tile)
 {
     QString hash = QString("%0_%1_%2").arg(zoomLvl()).arg(x).arg(y);
-#if 0
-    QMutexLocker locker(&m_mutexForTilesHash);
-    if (m_numberOfCachedImages >= m_maxCachedImages) {
-        return false;
-    }
-    QPixmapCache::insert(hash, tile);
-    ++m_numberOfCachedImages;
-    return true;
-#endif
     m_pixmapCache.putImageInCache(hash, tile);
     return true;
 }
@@ -119,13 +111,12 @@ bool IMapData::putImageInCache(const int x, const int y, const QPixmap &tile)
 QPixmap IMapData::getImageFromCache(const int x, const int y)
 {
     QString hash = QString("%0_%1_%2").arg(zoomLvl()).arg(x).arg(y);
-#if 0
-    QMutexLocker locker(&m_mutexForTilesHash);
-    QPixmap retVal;
-    QPixmapCache::find(hash, retVal);
-    return retVal;
-#endif
     return m_pixmapCache.getImageFromCache(hash);
+}
+
+int IMapData::imagesInCache() const
+{
+    return m_pixmapCache.size();
 }
 
 int IMapData::maxCachedImages() const
@@ -138,16 +129,16 @@ void IMapData::setMaxCachedImages(int maxCachedImages)
     m_maxCachedImages = maxCachedImages;
 }
 
-QSize IMapData::mapSizeInPx() const
-{
-    return QSize((maxX() - minX() + 1) * tileWidth(), (maxY() - minY() + 1) * tileHeight());
-}
-
 QList<int> IMapData::supportedZoomLevels() const
 {
     QList<int> retVal = m_zoomDatas.keys();
     qSort(retVal);
     return retVal;
+}
+
+bool IMapData::isValidData() const
+{
+    return m_isValidData;
 }
 
 bool IMapData::zoomUp()
@@ -235,9 +226,19 @@ void IMapData::setSettingByZoomData(const IMapData::ZoomData &zd)
     m_maxY = zd.maxY;
 }
 
-void IMapData::addZoomLevel(const int &zoomLevel, const IMapData::ZoomData &zd)
+void IMapData::addZoomLevel(const IMapData::ZoomData &zd)
 {
-    m_zoomDatas[zoomLevel] = zd;
+    m_zoomDatas[zd.zoomLvl] = zd;
+}
+
+bool IMapData::checkInBounds(const int x, const int y)
+{
+    return x >= minX() && x <= maxX() && y >= minY() && y <= maxY();
+}
+
+void IMapData::setDataValid(const bool valid)
+{
+    m_isValidData = valid;
 }
 QPoint IMapData::currentMapOffset() const
 {
@@ -284,18 +285,31 @@ void PixmapCache::putImageInCache(const QString &key, const QPixmap &pixmap)
 {
     if (m_keys.contains(key)) {
         m_keys.removeAll(key);
-    } else if (m_keys.size() >= m_maxSize) {
-        QList<QString> first20 = m_keys.mid(0, 20);
-        for (const QString &key : first20) {
-            m_pixmapCache.remove(key);
+        m_keys.append(key);
+    } else {
+        if (m_keys.size() >= m_maxSize) {
+            QList<QString> first20 = m_keys.mid(0, 20);
+            for (const QString &key : first20) {
+                m_pixmapCache.remove(key);
+            }
+            m_keys = m_keys.mid(20);
         }
-        m_keys = m_keys.mid(20);
+        m_keys.append(key);
+        m_pixmapCache[key] = pixmap;
     }
-    m_keys.append(key);
-    m_pixmapCache[key] = pixmap;
 }
 
 QPixmap PixmapCache::getImageFromCache(const QString &key)
 {
-    return m_pixmapCache.value(key, QPixmap());
+    QPixmap retPix =  m_pixmapCache.value(key, QPixmap());
+    if (!retPix.isNull()) {
+        m_keys.removeAll(key);
+        m_keys.append(key);
+    }
+    return retPix;
+}
+
+int PixmapCache::size() const
+{
+    return m_pixmapCache.size();
 }

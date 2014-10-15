@@ -3,7 +3,6 @@
 
 #include <QMainWindow>
 
-class MapWidget;
 class SlippyMapWidget;
 
 namespace Ui {
@@ -18,12 +17,8 @@ public:
     explicit MainWindowMapsForArm(QString path, QWidget *parent = 0);
     ~MainWindowMapsForArm();
 
-private slots:
-    void onTimeout();
-
 private:
     Ui::MainWindowMapsForArm *ui;
-    MapWidget *m_mapWidget;
     SlippyMapWidget *m_glMapWidget;
 
 };

@@ -3,6 +3,8 @@
 
 #include "irenderer.h"
 
+#include <QPixmap>
+
 class IMapData;
 
 class SlippyMapRenderer : public IRenderer
@@ -17,6 +19,7 @@ public:
 
 private:
     QRect tileRect(QPoint tilePos);
+    void renderHelper(QPainter *painter, QRect rect);
 
 signals:
 
@@ -24,6 +27,10 @@ public slots:
 
 private:
     IMapData *m_mapDataSource;
+    QPoint m_lastMapOffset;
+    int m_lastZoomLevel;
+    quint64 m_lastTimeChangeCoord;
+    QPixmap m_cache;
 };
 
 #endif // SLIPPYMAPRENDERER_H

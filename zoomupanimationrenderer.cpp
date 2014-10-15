@@ -12,6 +12,5 @@ ZoomUpAnimationRenderer::ZoomUpAnimationRenderer(
 
 void ZoomUpAnimationRenderer::renderHandler(QPainter *painter, QRect rect)
 {
-    m_pixmapForRender = pixmap().copy(currentRect()).scaled(rect.size());
-    painter->drawPixmap(rect, m_pixmapForRender);
+    painter->drawPixmap(rect,  pixmap(), currentRect());
 }

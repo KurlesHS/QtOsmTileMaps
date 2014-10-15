@@ -9,13 +9,14 @@
 #include <QPixmapCache>
 
 // 10000000 / 60000
-#define MAX_CACHED_IMAGES 300
+#define MAX_CACHED_IMAGES 200
 
 class PixmapCache {
 public:
     PixmapCache(int maxSize);
     void putImageInCache(const QString &key, const QPixmap &pixmap);
     QPixmap getImageFromCache(const QString &key);
+    int size() const;
 
 private:
     const int m_maxSize;
@@ -41,6 +42,7 @@ public:
     virtual QPixmap getTile(const int x, const int y) = 0;
     QPixmap getTile(const QPoint &tilePos);
     QList<int> supportedZoomLevels() const;
+    bool isValidData() const;
 
     int zoomLvl() const;
     int minZoomLevel() const;
@@ -49,17 +51,22 @@ public:
     int maxX() const;
     int minY() const;
     int maxY() const;
-    QRect tileBounds() const;
+
     bool canZoomUp() const;
     bool canZoomDown() const;
+
     int maxCachedImages() const;
     void setMaxCachedImages(int maxCachedImages);
+
+    QRect tileBounds() const;
+
     QPixmap defaultBackground() const;
     void setDefaultBackgroundColor(const QColor &color);
-    QSize mapSizeInPx() const;
 
     bool putImageInCache(const int x, const int y, const QPixmap &tile);
     QPixmap getImageFromCache(const int x, const int y);
+
+    int imagesInCache() const;
 
     int tileWidth() const;
     int tileHeight() const;
@@ -68,6 +75,7 @@ public:
     void setCurrentMapOffset(const QPoint &currentMapOffset);
 
     void adjustMap(const QRect &rect, const int newZoomLevel, QPoint adjustTo = QPoint(-1, -1));
+
     void toTopLeftCorner();
 
 signals:
@@ -83,7 +91,9 @@ public Q_SLOTS:
 protected:
     void setZoomLvl(const int zoomLvl);
     void setSettingByZoomData(const ZoomData &zd);
-    void addZoomLevel(const int &zoomLevel, const ZoomData &zd);
+    void addZoomLevel(const ZoomData &zd);
+    bool checkInBounds(const int x, const int y);
+    void setDataValid(const bool valid);
 
 private:
     int m_zoomLvl;
@@ -93,6 +103,7 @@ private:
     int m_maxY;
     int m_numberOfCachedImages;
     int m_maxCachedImages;
+    bool m_isValidData;
     QPixmap m_defaultBackground;
     QHash<int, ZoomData> m_zoomDatas;
     QMutex m_mutexForTilesHash;

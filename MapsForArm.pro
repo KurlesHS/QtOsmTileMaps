@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui opengl
+QT       += core gui opengl sql
 QMAKE_CXXFLAGS += -std=c++11
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -25,7 +25,8 @@ SOURCES += main.cpp\
     zoomanimationrenderer.cpp \
     zoomupanimationrenderer.cpp \
     zoomdownanimationrenderer.cpp \
-    batchrenderer.cpp
+    batchrenderer.cpp \
+    mapdatambtiles.cpp
 
 HEADERS  += mainwindowmapsforarm.h \
     imapdata.h \
@@ -40,7 +41,8 @@ HEADERS  += mainwindowmapsforarm.h \
     zoomupanimationrenderer.h \
     zoomdownanimationrenderer.h \
     debugmsgwithtime.h \
-    batchrenderer.h
+    batchrenderer.h \
+    mapdatambtiles.h
 
 FORMS    += mainwindowmapsforarm.ui
 

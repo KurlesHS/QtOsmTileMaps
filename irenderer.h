@@ -19,13 +19,19 @@ public:
     virtual ~IRenderer() {}
     virtual void render(QPainter *painter, QRect rect) = 0;
     virtual void setNextRenderer(IRenderer *renderer) {m_nextRenderer = renderer;}
+    virtual void initRendererBeforeStartPainting() {}
     virtual IRenderer *nextRenderer() {return m_nextRenderer;}
     ISetRenderer *rendererSetter() const {return m_rendererSetter;}
 
 protected:
     void setNextRendererInPainter () {
         if (m_rendererSetter) {
+            if (nextRenderer()){
+                nextRenderer()->initRendererBeforeStartPainting();
+            }
             m_rendererSetter->setRenderer(nextRenderer());
+            emit needUpdate();
+
             setNextRenderer(nullptr);
         }
     }

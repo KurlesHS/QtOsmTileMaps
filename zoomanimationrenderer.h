@@ -19,6 +19,7 @@ public:
     void setStartRect(const QRect &startRect) {m_startRect = startRect;}
     void setEndRect(const QRect &endRect) {m_endRect = endRect;}
     void setTickInMs(const int tickInMs);
+    qreal progress() const {return m_progress;}
 
     // IRenderer interface
     virtual void render(QPainter *painter, QRect rect);
@@ -38,9 +39,10 @@ private:
     QRect m_startRect;
     QRect m_endRect;
     QRect m_currentRect;
-    int m_currentTick;
-    int m_maxTick;
+    int m_startTime;
+    int m_animationDuration;
     int m_tickInMs;
+    qreal m_progress;
     quint64 m_currentMs;
     QPixmap m_pixmap;
 
