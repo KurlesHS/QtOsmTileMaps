@@ -16,13 +16,13 @@ MapDataMbtiles::MapDataMbtiles(const QString &pathToMbtiles, QObject *parent) :
     if (db.open()) {
         QSqlQuery q(db);
         QList<quint8> zoomLevels;
-        if (q.exec("select distinct(zoom_level) from map asc")) {
+        if (q.exec("select distinct(zoom_level) from tiles asc")) {
             while (q.next()) {
                 zoomLevels.append(q.value(0).toInt());
             }
         }
         for (const quint8 &zoomLevel : zoomLevels) {
-            q.prepare("select min(tile_column), max(tile_column), min(tile_row), max(tile_row) from map where zoom_level = ?");
+            q.prepare("select min(tile_column), max(tile_column), min(tile_row), max(tile_row) from tiles where zoom_level = ?");
             q.addBindValue(zoomLevel);
             if (q.exec()) {
                 while (q.next()) {
